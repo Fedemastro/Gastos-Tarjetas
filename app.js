@@ -663,10 +663,13 @@ function renderCards() {
     '</tbody></table></div>';
 }
 
-function delCard(id) {
+async function delCard(id) {
   if (!confirm('Eliminar tarjeta?')) return;
   db.cards = db.cards.filter(c => c.id !== id);
-  saveAndSync(); renderCards(); populateCardSelects();
+  saveLocal(); renderCards(); populateCardSelects();
+  try {
+    await supaDelete('cards', 'id=eq.' + id);
+  } catch(e) { console.error('delCard error:', e); }
 }
 
 function populateCardSelects() {
