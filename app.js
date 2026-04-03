@@ -2,7 +2,7 @@
 
 const PROXY_URL = 'https://claudeworker.fedemusic2008.workers.dev';
 // Token secreto — tiene que coincidir con AUTH_TOKEN en Cloudflare
-const AUTH_TOKEN = 'REEMPLAZA_CON_TU_TOKEN_SECRETO';
+const AUTH_TOKEN = '445daa74-08f5-4f4d-a6d3-29d6191804e1';
 
 let db = {
   cards: [], extHolders: [], summaries: [],
@@ -53,28 +53,30 @@ async function saveAndSync() {
 }
 
 async function manualSync() {
-  if (!useSheets || !isAuthorized) { alert('Conecta Google Sheets primero'); return; }
   setSyncStatus('syncing', 'sincronizando...');
   document.getElementById('sync-btn').disabled = true;
-  // Pull first to get remote data
-  const remote = await pullFromSheets(cfg.sheetId);
-  if (remote) {
-    // Merge remote into local (remote wins)
-    db = { ...db, ...remote };
-    saveLocal();
-    // Push back to update headers and any missing columns
-    await pushToSheets(cfg.sheetId, db);
-    // Repopulate all selects with updated data
+  try {
+    const remote = await loadAllData();
+    if (remote) {
+      db.cards          = remote.cards;
+      db.summaries      = remote.summaries;
+      db.payments       = remote.payments;
+      db.categories     = remote.categories;
+      db.extHolders     = remote.extHolders;
+      db.gastos         = remote.gastos;
+      db.gastosTerceros = remote.gastosTerceros;
+      db.fx             = remote.fx;
+      saveLocal();
+    }
     populateCardSelects();
     populateGastoCats();
     populateGastoTerceroSelects();
     renderCurrentSection();
     renderDashboard();
     setSyncStatus('ok', 'sincronizado');
-  } else {
-    // Nothing in Sheets yet — push everything
-    const ok = await pushToSheets(cfg.sheetId, db);
-    setSyncStatus(ok ? 'ok' : 'error', ok ? 'sincronizado' : 'error');
+  } catch(e) {
+    console.error('Sync error:', e);
+    setSyncStatus('error', 'error al sincronizar');
   }
   document.getElementById('sync-btn').disabled = false;
 }
@@ -515,14 +517,11 @@ function savePayment(summaryId) {
   var ars = document.getElementById('pay-ars-' + summaryId);
   var usd = document.getElementById('pay-usd-' + summaryId);
   var full = document.getElementById('pay-full-' + summaryId);
-  db.payments[summaryId] = {
-    ars: ars ? ars.value : '',
-    usd: usd ? usd.value : '',
-    full: full ? full.checked : false
-  };
-  saveAndSync();
-  // Update restante and estado in the same row without full re-render
+  var payment = { ars: ars ? ars.value : '', usd: usd ? usd.value : '', full: full ? full.checked : false };
+  db.payments[summaryId] = payment;
+  saveLocal();
   updatePaymentRow(summaryId);
+  savePaymentDB(summaryId, payment).catch(function(e){ console.warn('Payment save error:', e); });
 }
 
 function updatePaymentRow(summaryId) {
@@ -1050,7 +1049,7 @@ async function extractWithAI() {
   btn.disabled = false;
 }
 
-function confirmExtraction() {
+async function confirmExtraction() {
   if (!pendingExtraction) return;
   const cardId = document.getElementById('upload-card').value;
   const month  = document.getElementById('upload-month').value;
@@ -1077,50 +1076,33 @@ function confirmExtraction() {
       items: (ext.items || []).map(mapExpense)
     };
   }
-  var summaryId = 's' + Date.now();
+  var expenses = (p.ownExpenses || []).map(mapExpense);
+  var exts     = (p.extensions || []).map(mapExtension);
   var summaryObj = {
-    id: summaryId, cardId, uploadedAt: new Date().toISOString(),
+    id: null, cardId, uploadedAt: new Date().toISOString(),
     cardName: card ? card.name : (p.cardName || 'Tarjeta'),
     month, vencimiento: p.vencimiento || '',
-    minimo: Number(p.minimo || 0),
-    total: Number(p.total || 0),
-    totalUSD: Number(p.totalUSD || 0),
-    ownExpenses: (p.ownExpenses || []).map(mapExpense),
-    extensions: (p.extensions || []).map(mapExtension),
-    driveFileId: null,
-    driveLink: null
+    minimo: Number(p.minimo || 0), total: Number(p.total || 0), totalUSD: Number(p.totalUSD || 0),
+    driveFileId: null, driveLink: null, ownExpenses: expenses, extensions: exts
   };
-  db.summaries.push(summaryObj);
-  saveAndSync();
-  pendingExtraction = null;
-  document.getElementById('ai-output').textContent = 'Guardado. Subiendo archivo a Drive...';
+
+  document.getElementById('ai-output').textContent = 'Guardando...';
   document.getElementById('confirm-btn').style.display = 'none';
+  pendingExtraction = null;
 
-  // Upload original file to Drive in background
-  if (useSheets && isAuthorized && uploadedFileData) {
-    var cardNameSafe = (summaryObj.cardName || 'tarjeta').replace(/[^a-zA-Z0-9\s]/g, '').trim();
-    var fileName = cardNameSafe + ' - ' + month + '.' + (uploadedFileType === 'application/pdf' ? 'pdf' : 'jpg');
-    var folderPath = month;
-    uploadToDrive(fileName, uploadedFileData, uploadedFileType || 'application/pdf', folderPath)
-      .then(function(result) {
-        if (result) {
-          summaryObj.driveFileId = result.id;
-          summaryObj.driveLink = result.link;
-          // Update the summary in db
-          var idx = db.summaries.findIndex(function(s){ return s.id === summaryId; });
-          if (idx !== -1) db.summaries[idx] = summaryObj;
-          saveAndSync();
-          document.getElementById('ai-output').textContent = 'Guardado y subido a Drive correctamente.';
-        } else {
-          document.getElementById('ai-output').textContent = 'Guardado. No se pudo subir a Drive.';
-        }
-      });
-  } else {
+  try {
+    var newId = await saveSummary(summaryObj, expenses, exts);
+    summaryObj.id = newId;
+    db.summaries.push(summaryObj);
+    saveLocal();
     document.getElementById('ai-output').textContent = 'Guardado correctamente.';
+    resetDropZone();
+    renderDashboard();
+    populateHistoricoFilters();
+  } catch(e) {
+    document.getElementById('ai-output').textContent = 'Error al guardar: ' + e.message;
+    document.getElementById('confirm-btn').style.display = 'inline-flex';
   }
-
-  resetDropZone();
-  renderDashboard();
 }
 
 function addManualExt() {
@@ -1342,7 +1324,8 @@ function updateExpenseCategory(summaryId, expenseIndex, newCategory) {
   var s = db.summaries.find(function(x){ return x.id === summaryId; });
   if (!s || !s.ownExpenses || !s.ownExpenses[expenseIndex]) return;
   s.ownExpenses[expenseIndex].category = newCategory;
-  saveAndSync();
+  saveLocal();
+  updateExpenseCategoryDB(summaryId, expenseIndex, newCategory).catch(function(e){ console.warn('Cat update error:', e); });
 }
 
 function editSummary(id) {
@@ -1418,25 +1401,19 @@ function saveSummaryEdit(id) {
   s.minimo   = Number(document.getElementById('ep-min-' + id).value) || 0;
   s.totalUSD = Number(document.getElementById('ep-usd-' + id).value) || 0;
 
-  saveAndSync();
+  saveLocal();
   var panel = document.getElementById('edit-panel-' + id);
   if (panel) panel.remove();
   renderHistorico();
   renderDashboard();
+  updateSummaryFields(id, { cardId: s.cardId, cardName: s.cardName, month: s.month, vencimiento: s.vencimiento, total: s.total, minimo: s.minimo, totalUSD: s.totalUSD }).catch(function(e){ console.warn('Edit save error:', e); });
 }
 
-function delSummary(id) {
-  if (!confirm('Eliminar este resumen? Esta accion no se puede deshacer.')) return;
-  var summary = db.summaries.find(function(s){ return s.id === id; });
+async function delSummary(id) {
+  if (!confirm('Eliminar este resumen?')) return;
   db.summaries = db.summaries.filter(function(s){ return s.id !== id; });
-  saveAndSync();
-  // Move Drive file to trash if exists
-  if (summary && summary.driveFileId && useSheets && isAuthorized) {
-    moveToTrashDrive(summary.driveFileId).then(function(ok) {
-      if (!ok) console.warn('No se pudo mover a la papelera de Drive el archivo:', summary.driveFileId);
-    });
-  }
-  renderHistorico();
+  saveLocal(); renderHistorico(); renderDashboard();
+  try { await deleteSummaryDB(id); } catch(e) { console.warn('Error deleting summary:', e); }
 }
 
 
