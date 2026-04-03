@@ -42,10 +42,14 @@ async function supaPatch(table, match, body) {
   return supaFetch(`/rest/v1/${table}?${match}`, { method: 'PATCH', body: JSON.stringify(body), headers: { 'Prefer': 'return=representation' } });
 }
 async function supaUpsert(table, body) {
-  return supaFetch(`/rest/v1/${table}`, { method: 'POST', body: JSON.stringify(body), headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' } });
+  const payload = Array.isArray(body) ? body : [body];
+  return supaFetch(`/rest/v1/${table}`, { method: 'POST', body: JSON.stringify(payload), headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' } });
 }
 async function supaDelete(table, match) {
-  return supaFetch(`/rest/v1/${table}?${match}`, { method: 'DELETE' });
+  return supaFetch(`/rest/v1/${table}?${match}`, { 
+    method: 'DELETE',
+    headers: { 'Prefer': 'return=minimal' }
+  });
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -396,4 +400,67 @@ async function updateSummaryFields(id, fields) {
   if (fields.minimo !== undefined) row.minimo = fields.minimo;
   if (fields.totalUSD !== undefined) row.total_usd = fields.totalUSD;
   await supaPatch('summaries', `id=eq.${id}`, row);
+}
+
+// ─── Supabase Storage ─────────────────────────────────────────────────────────
+
+async function uploadToStorage(fileName, fileBase64, mimeType, month) {
+  const uid = currentUserId();
+  if (!uid) throw new Error('No hay usuario autenticado');
+
+  // Path: userId/YYYY-MM/filename
+  const path = uid + '/' + month + '/' + fileName;
+
+  // Convert base64 to binary
+  const binary = atob(fileBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: mimeType });
+
+  const token = (_supaUser && _supaUser.access_token) ? _supaUser.access_token : SUPA_KEY;
+
+  // Upload via Supabase Storage API
+  const resp = await fetch(SUPA_URL + '/storage/v1/object/resumenes/' + path, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'apikey': SUPA_KEY,
+      'Content-Type': mimeType,
+      'x-upsert': 'true'
+    },
+    body: blob
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.message || err.error || 'Error subiendo archivo');
+  }
+
+  const data = await resp.json();
+
+  // Get signed URL (valid 10 years)
+  const signedResp = await fetch(SUPA_URL + '/storage/v1/object/sign/resumenes/' + path, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'apikey': SUPA_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ expiresIn: 315360000 }) // 10 años en segundos
+  });
+
+  if (!signedResp.ok) return { path, signedUrl: null };
+  const signedData = await signedResp.json();
+  const signedUrl = SUPA_URL + '/storage/v1' + signedData.signedURL;
+
+  return { path, signedUrl };
+}
+
+async function deleteFromStorage(path) {
+  if (!path) return;
+  const token = (_supaUser && _supaUser.access_token) ? _supaUser.access_token : SUPA_KEY;
+  await fetch(SUPA_URL + '/storage/v1/object/resumenes/' + path, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY }
+  }).catch(e => console.warn('Storage delete error:', e));
 }
