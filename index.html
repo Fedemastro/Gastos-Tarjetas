@@ -432,16 +432,11 @@ hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
       <!-- GENERAL -->
       <div id="cfg-general">
         <div class="vc">
-          <div class="vct">Google Sheets</div>
-          <div id="sheets-status" class="sts ok" style="margin-bottom:14px;display:inline-block">conectado</div>
-          <div class="form-row"><div class="form-col"><label>Client ID</label><input id="cfg-client-id2" type="text"></div></div>
-          <div class="form-row">
-            <div class="form-col"><label>API Key</label><input id="cfg-api-key2" type="text"></div>
-            <div class="form-col"><label>Spreadsheet ID</label><input id="cfg-sheet-id2" type="text"></div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-            <button class="btn primary" onclick="saveConfig()">Guardar config</button>
+          <div class="vct">Cuenta</div>
+          <div id="account-email" style="font-size:13px;color:var(--text2);margin-bottom:12px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn" onclick="manualSync()">↻ Sincronizar ahora</button>
+            <button class="btn danger" onclick="doLogout()">Cerrar sesión</button>
           </div>
         </div>
         <div class="vc">
@@ -531,11 +526,7 @@ hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
 <script>if(window.pdfjsLib){window.pdfjsLib.GlobalWorkerOptions.workerSrc='';}</script>
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client"></script>
-<script src="sheets.js"></script>
+<script src="supabase.js"></script>
 <script src="app.js"></script>
-<script>
-  loadCfg();
-  if(cfg.clientId&&cfg.apiKey&&cfg.sheetId){useSheets=true;launchApp();}
-</script>
 </body>
 </html>
