@@ -1088,17 +1088,21 @@ async function confirmExtraction() {
     db.summaries.push(summaryObj);
     saveLocal();
     document.getElementById('ai-output').textContent = 'Guardado. Subiendo archivo...';
-    resetDropZone();
     renderDashboard();
     populateHistoricoFilters();
 
     // Upload to Supabase Storage in background
-    if (uploadedFileData) {
+    // Save file data BEFORE resetDropZone clears it
+    var fileDataToUpload = uploadedFileData;
+    var fileTypeToUpload = uploadedFileType;
+    resetDropZone();
+
+    if (fileDataToUpload) {
       var card2 = db.cards.find(function(c){ return c.id === summaryObj.cardId; });
       var cardNameSafe = (card2 ? card2.name : 'tarjeta').replace(/[^a-zA-Z0-9]/g, '_');
-      var ext = (uploadedFileType === 'application/pdf') ? 'pdf' : 'jpg';
+      var ext = (fileTypeToUpload === 'application/pdf') ? 'pdf' : 'jpg';
       var fileName = cardNameSafe + '_' + month + '.' + ext;
-      uploadToStorage(fileName, uploadedFileData, uploadedFileType || 'application/pdf', month)
+      uploadToStorage(fileName, fileDataToUpload, fileTypeToUpload || 'application/pdf', month)
         .then(function(result) {
           if (result && result.signedUrl) {
             summaryObj.driveFileId = result.path;
