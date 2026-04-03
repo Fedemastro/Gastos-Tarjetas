@@ -205,9 +205,9 @@ function cardLogo(type) {
   var t = (type || '').toLowerCase();
   var src = CARD_LOGOS[t] || CARD_LOGOS['otro'];
   if (t === 'naranja') {
-    return '<div style="width:44px;height:28px;background:#FF6B00;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;letter-spacing:.5px">NARANJA</div>';
+    return '<div style="width:52px;height:32px;background:#FF6B00;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;letter-spacing:.5px">NARANJA</div>';
   }
-  return '<img src="' + src + '" style="width:44px;height:28px;object-fit:contain;border-radius:4px;border:1px solid var(--border);background:#fff;padding:2px" alt="' + (type||'') + '">';
+  return '<img src="' + src + '" style="width:52px;height:32px;object-fit:contain;display:block" alt="' + (type||'') + '">';
 }
 
 
