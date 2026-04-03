@@ -1328,7 +1328,7 @@ function renderHistorico() {
       '<th>Tarjeta</th><th>Mes</th><th>Subido</th>' +
       '<th style="text-align:right">Total $</th>' +
       '<th style="text-align:right">Total U$S</th>' +
-      '<th>Drive</th>' +
+      '<th>Archivo</th>' +
       '<th></th>' +
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
