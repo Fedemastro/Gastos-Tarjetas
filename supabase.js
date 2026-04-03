@@ -420,6 +420,7 @@ async function uploadToStorage(fileName, fileBase64, mimeType, month) {
   const token = (_supaUser && _supaUser.access_token) ? _supaUser.access_token : SUPA_KEY;
 
   // Upload via Supabase Storage API
+  console.log('Uploading to storage path:', path, 'mimeType:', mimeType, 'size:', bytes.length);
   const resp = await fetch(SUPA_URL + '/storage/v1/object/resumenes/' + path, {
     method: 'POST',
     headers: {
@@ -433,8 +434,10 @@ async function uploadToStorage(fileName, fileBase64, mimeType, month) {
 
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
-    throw new Error(err.message || err.error || 'Error subiendo archivo');
+    console.error('Storage upload failed:', resp.status, resp.statusText, err);
+    throw new Error(err.message || err.error || 'Error subiendo archivo: ' + resp.status);
   }
+  console.log('Storage upload OK:', resp.status);
 
   const data = await resp.json();
 
