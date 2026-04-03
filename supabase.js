@@ -6,8 +6,12 @@ let _supaUser = null;
 
 // ─── HTTP helpers ─────────────────────────────────────────────────────────────
 function supaHeaders(extra = {}) {
-  const h = { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY };
-  if (_supaUser?.access_token) h['Authorization'] = 'Bearer ' + _supaUser.access_token;
+  const token = (_supaUser && _supaUser.access_token) ? _supaUser.access_token : SUPA_KEY;
+  const h = { 
+    'Content-Type': 'application/json', 
+    'apikey': SUPA_KEY, 
+    'Authorization': 'Bearer ' + token 
+  };
   return { ...h, ...extra };
 }
 
@@ -24,7 +28,15 @@ async function supaGet(table, params = '') {
   return supaFetch(`/rest/v1/${table}?${params}&apikey=${SUPA_KEY}`);
 }
 async function supaPost(table, body) {
-  return supaFetch(`/rest/v1/${table}`, { method: 'POST', body: JSON.stringify(body), headers: { 'Prefer': 'return=representation' } });
+  // Always send as array for consistency
+  const payload = Array.isArray(body) ? body : [body];
+  const result = await supaFetch(`/rest/v1/${table}`, { 
+    method: 'POST', 
+    body: JSON.stringify(payload), 
+    headers: { 'Prefer': 'return=representation', 'Content-Type': 'application/json' } 
+  });
+  if (!result || !result.length) throw new Error('No se recibió respuesta de Supabase al insertar en ' + table);
+  return result;
 }
 async function supaPatch(table, match, body) {
   return supaFetch(`/rest/v1/${table}?${match}`, { method: 'PATCH', body: JSON.stringify(body), headers: { 'Prefer': 'return=representation' } });
