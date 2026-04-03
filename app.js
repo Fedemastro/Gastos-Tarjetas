@@ -2,7 +2,7 @@
 
 const PROXY_URL = 'https://claudeworker.fedemusic2008.workers.dev';
 // Token secreto — tiene que coincidir con AUTH_TOKEN en Cloudflare
-const AUTH_TOKEN = '445daa74-08f5-4f4d-a6d3-29d6191804e1';
+const AUTH_TOKEN = 'REEMPLAZA_CON_TU_TOKEN_SECRETO';
 
 let db = {
   cards: [], extHolders: [], summaries: [],
@@ -12,8 +12,6 @@ let db = {
   payments: {}
 };
 
-let cfg = { clientId: '', apiKey: '', sheetId: '' };
-let useSheets = false;
 let pendingExtraction = null;
 let manualExtCount = 0;
 let syncTimeout = null;
@@ -1753,19 +1751,4 @@ function clearAll() {
 }
 
 // --- Boot ---
-
-loadCfg();
-if (cfg.clientId && cfg.apiKey && cfg.sheetId) {
-  // Config guardada: lanzar app directamente sin mostrar pantalla de login
-  useSheets = true;
-  document.addEventListener('DOMContentLoaded', function() {
-    launchApp();
-  });
-} else {
-  // Sin config: mostrar pantalla de login con campos vacios
-  document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('cfg-client-id').value = '';
-    document.getElementById('cfg-api-key').value   = '';
-    document.getElementById('cfg-sheet-id').value  = '';
-  });
-}
+// initAuth() is called from index.html after both supabase.js and app.js load
