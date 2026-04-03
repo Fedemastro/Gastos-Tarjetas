@@ -103,11 +103,13 @@ async function launchApp() {
 
 
   initDefaults();
-  renderCurrentSection();
   populateCardSelects();
   populateGastoCats();
   populateGastoTerceroSelects();
   renderCats();
+  renderCurrentSection();
+  renderDashboard();
+  setSyncStatus('ok', 'sincronizado');
   renderDashboard();
   updateConfigFields();
 }
@@ -587,20 +589,27 @@ function toggleFullPayment(summaryId, totalARS, totalUSD) {
 
 // --- Cards ---
 
-function saveCard() {
+async function saveCard() {
   const name = document.getElementById('tc-name').value.trim();
   const bank = document.getElementById('tc-bank').value.trim();
   const type = document.getElementById('tc-type').value;
   const auto = document.getElementById('tc-auto').value;
   const editId = document.getElementById('tc-edit-id').value;
   if (!name) return;
-  if (editId) {
-    const c = db.cards.find(c => c.id === editId);
-    if (c) { c.name = name; c.bank = bank; c.type = type; c.autoDebit = auto; }
-  } else {
-    db.cards.push({ id: 'c' + Date.now(), name, bank, type, autoDebit: auto });
-  }
-  saveAndSync(); renderCards(); populateCardSelects(); cancelEditCard();
+  try {
+    if (editId) {
+      // Update existing
+      const c = db.cards.find(c => c.id === editId);
+      if (c) { c.name = name; c.bank = bank; c.type = type; c.autoDebit = auto; }
+      await supaPatch('cards', 'id=eq.' + editId, { name, bank, type: type, auto_debit: auto === 'yes' });
+    } else {
+      // Insert new — Supabase generates the UUID
+      const res = await supaPost('cards', { user_id: currentUserId(), name, bank, type: type, auto_debit: auto === 'yes' });
+      const newId = res[0].id;
+      db.cards.push({ id: newId, name, bank, type, autoDebit: auto });
+    }
+    saveLocal(); renderCards(); populateCardSelects(); cancelEditCard();
+  } catch(e) { console.error('saveCard error:', e); alert('Error guardando tarjeta: ' + e.message); }
 }
 
 function editCard(id) {
@@ -668,12 +677,15 @@ function populateCardSelects() {
 
 // --- Extension holders ---
 
-function addExtHolder() {
+async function addExtHolder() {
   const n = document.getElementById('ext-name').value.trim();
   if (!n) return;
-  db.extHolders.push({ id: 'h' + Date.now(), name: n });
-  saveAndSync(); renderExtHolders(); populateGastoTerceroSelects();
-  document.getElementById('ext-name').value = '';
+  try {
+    const res = await supaPost('ext_holders', { user_id: currentUserId(), name: n });
+    db.extHolders.push({ id: res[0].id, name: n });
+    saveLocal(); renderExtHolders(); populateGastoTerceroSelects();
+    document.getElementById('ext-name').value = '';
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 function renderExtHolders() {
@@ -717,19 +729,20 @@ function populateGastoCats() {
   const gf = document.getElementById('gf-cat'); if (gf) gf.innerHTML = filterOpts;
 }
 
-function addGasto() {
+async function addGasto() {
   const desc = document.getElementById('ge-desc').value.trim();
   const amount = document.getElementById('ge-amount').value;
+  const cat = document.getElementById('ge-cat').value;
+  const date = document.getElementById('ge-date').value;
+  const currency = document.getElementById('ge-curr').value;
+  const month = document.getElementById('ge-month').value;
   if (!desc || !amount) return;
-  db.gastos.push({
-    id: 'g' + Date.now(), desc, amount: Number(amount),
-    cat: document.getElementById('ge-cat').value,
-    date: document.getElementById('ge-date').value,
-    currency: document.getElementById('ge-curr').value,
-    month: document.getElementById('ge-month').value
-  });
-  saveAndSync(); renderGastos();
-  document.getElementById('ge-desc').value = ''; document.getElementById('ge-amount').value = '';
+  try {
+    const res = await supaPost('gastos_extra', { user_id: currentUserId(), description: desc, amount: Number(amount), category: cat, date: date || null, currency, month });
+    db.gastos.push({ id: res[0].id, desc, amount: Number(amount), cat, date, currency, month });
+    saveLocal(); renderGastos();
+    document.getElementById('ge-desc').value = ''; document.getElementById('ge-amount').value = '';
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 function renderGastos() {
@@ -1093,7 +1106,7 @@ function addManualExt() {
   list.appendChild(div);
 }
 
-function saveManual() {
+async function saveManual() {
   const cardId = document.getElementById('m-card').value;
   const month  = document.getElementById('m-month').value;
   if (!cardId || !month) { alert('Selecciona tarjeta y mes'); return; }
@@ -1104,17 +1117,21 @@ function saveManual() {
     const tot = document.getElementById(base + '-total');
     if (inp.value.trim()) exts.push({ holder: inp.value.trim(), total: Number(tot ? tot.value : 0), items: [] });
   });
-  db.summaries.push({
-    id: 's' + Date.now(), cardId, cardName: card.name, uploadedAt: new Date().toISOString(), month,
+  const summaryObj = {
+    id: null, cardId, cardName: card.name, uploadedAt: new Date().toISOString(), month,
     vencimiento: document.getElementById('m-venc').value,
     minimo: Number(document.getElementById('m-min').value || 0),
     total: Number(document.getElementById('m-total').value || 0),
     totalUSD: Number(document.getElementById('m-usd').value || 0),
     ownExpenses: [], extensions: exts
-  });
-  saveAndSync();
-  alert('Guardado correctamente');
-  renderDashboard();
+  };
+  try {
+    const newId = await saveSummary(summaryObj, [], exts);
+    summaryObj.id = newId;
+    db.summaries.push(summaryObj);
+    saveLocal(); renderDashboard();
+    alert('Guardado correctamente');
+  } catch(e) { alert('Error al guardar: ' + e.message); }
 }
 
 
