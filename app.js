@@ -24,7 +24,6 @@ function loadLocal() {
   if (d) { try { const p = JSON.parse(d); db = { ...db, ...p }; } catch {} }
   if (!db.payments) db.payments = {};
 }
-function saveCfg() { localStorage.setItem('tarjetas_cfg', JSON.stringify(cfg)); }
 function loadCfg() {
   const d = localStorage.getItem('tarjetas_cfg');
   if (d) { try { cfg = { ...cfg, ...JSON.parse(d) }; } catch {} }
@@ -39,15 +38,9 @@ function setSyncStatus(state, label) {
   lbl.textContent = label;
 }
 
-async function saveAndSync() {
+function saveAndSync() {
   saveLocal();
-  if (!useSheets || !isAuthorized) return;
-  clearTimeout(syncTimeout);
-  syncTimeout = setTimeout(async () => {
-    setSyncStatus('syncing', 'sincronizando...');
-    const ok = await pushToSheets(cfg.sheetId, db);
-    setSyncStatus(ok ? 'ok' : 'error', ok ? 'sincronizado' : 'error de sync');
-  }, 800);
+  // Supabase writes happen explicitly in each action
 }
 
 async function manualSync() {
@@ -81,48 +74,12 @@ async function manualSync() {
 
 // --- Auth / init ---
 
-function initApp() {
-  const clientId = (document.getElementById('cfg-client-id').value.trim()) || cfg.clientId;
-  const apiKey   = (document.getElementById('cfg-api-key').value.trim())   || cfg.apiKey;
-  const sheetId  = (document.getElementById('cfg-sheet-id').value.trim())  || cfg.sheetId;
-  if (!clientId || !apiKey || !sheetId) { alert('Completa todos los campos'); return; }
-  cfg = { clientId, apiKey, sheetId };
-  saveCfg();
-  useSheets = true;
-  launchApp();
-}
-
-function useLocalOnly() {
-  useSheets = false;
-  launchApp();
-}
-
 function launchApp() {
   loadLocal();
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 
-  if (useSheets) {
-    setSyncStatus('syncing', 'conectando...');
-    sheetsInit(cfg.clientId, cfg.apiKey, (ok) => {
-      if (!ok) { setSyncStatus('error', 'error de config'); return; }
-      window._sheetsOnAuth = async () => {
-        setSyncStatus('syncing', 'cargando...');
-        const remote = await pullFromSheets(cfg.sheetId);
-        if (remote) { db = { ...db, ...remote }; saveLocal(); }
-        populateCardSelects();
-        populateGastoCats();
-        populateGastoTerceroSelects();
-        renderCats();
-        renderCurrentSection();
-        renderDashboard();
-        setSyncStatus('ok', 'sincronizado');
-      };
-      sheetsSignIn();
-    });
-  } else {
-    setSyncStatus('error', 'solo local');
-  }
+
 
   initDefaults();
   renderCurrentSection();
@@ -1697,28 +1654,15 @@ function renderCuotas() {
 // --- Config ---
 
 function updateConfigFields() {
-  const el1 = document.getElementById('cfg-client-id2');
-  const el2 = document.getElementById('cfg-api-key2');
-  const el3 = document.getElementById('cfg-sheet-id2');
-  const el4 = document.getElementById('fx-rate');
-  const el5 = document.getElementById('sheets-status');
-  if (el1) el1.value = cfg.clientId || '';
-  if (el2) el2.value = cfg.apiKey   || '';
-  if (el3) el3.value = cfg.sheetId  || '';
-  if (el4) el4.value = db.fxRate || 1200;
-  if (el5) {
-    el5.textContent = isAuthorized ? 'conectado' : 'desconectado';
-    el5.className = 'sheet-status ' + (isAuthorized ? 'ok' : 'err');
+  var fxEl = document.getElementById('fx-rate');
+  if (fxEl) fxEl.value = db.fx || 1200;
+  var emailEl = document.getElementById('account-email');
+  if (emailEl && typeof _supaUser !== 'undefined' && _supaUser && _supaUser.user) {
+    emailEl.textContent = _supaUser.user.email || '';
   }
 }
 
-function saveConfig() {
-  cfg.clientId = document.getElementById('cfg-client-id2').value.trim();
-  cfg.apiKey   = document.getElementById('cfg-api-key2').value.trim();
-  cfg.sheetId  = document.getElementById('cfg-sheet-id2').value.trim();
-  saveCfg();
-  alert('Configuracion guardada. Recarga la pagina para reconectar.');
-}
+function saveConfig() {}
 
 function saveFX() { db.fxRate = Number(document.getElementById('fx-rate').value) || 1200; saveAndSync(); }
 
