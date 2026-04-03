@@ -236,7 +236,7 @@ async function loadAllData() {
     cards: mappedCards,
     summaries,
     payments: paymentsMap,
-    categories: mappedCats.length ? mappedCats : ['Supermercado','Restaurantes / Comida','Nafta / Transporte','Servicios','Salud','Ropa / Indumentaria','Entretenimiento','Viajes','Otros'],
+    categories: mappedCats.length ? mappedCats : ['Supermercado','Restaurantes / Comida','Nafta / Transporte','Servicios','Salud','Indumentaria','Entretenimiento','Viajes','Educación','Otros'],
     extHolders: mappedHolders,
     gastos: mappedGastos,
     gastosTerceros: mappedTerceros,
