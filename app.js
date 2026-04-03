@@ -1751,4 +1751,6 @@ function clearAll() {
 }
 
 // --- Boot ---
-// initAuth() is called from index.html after both supabase.js and app.js load
+document.addEventListener('DOMContentLoaded', function() {
+  initAuth();
+});
