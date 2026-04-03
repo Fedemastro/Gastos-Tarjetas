@@ -138,19 +138,19 @@ hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-wrap">
-    <div class="auth-logo"><em>mis</em>tarjetas</div>
     <div class="auth-card">
-      <div class="auth-title">Conectar con Google Sheets</div>
-      <div class="auth-sub">Sincronizá tus datos entre todos tus dispositivos</div>
-      <div class="auth-step"><div class="auth-step-num">1</div><p>Andá a <b>console.cloud.google.com</b>, creá un proyecto y habilitá la <b>Google Sheets API</b></p></div>
-      <div class="auth-step"><div class="auth-step-num">2</div><p>En <b>Credentials</b>, creá una <b>API Key</b> y un <b>OAuth 2.0 Client ID</b> (Web App). Agregá tu URL de GitHub Pages como origen autorizado</p></div>
-      <div class="auth-step"><div class="auth-step-num">3</div><p>Creá una <b>Google Spreadsheet</b> nueva y copiá el ID de la URL</p></div>
-      <div class="fg" style="margin-top:1.25rem"><label>Google Client ID (OAuth)</label><input type="text" id="cfg-client-id" placeholder="xxxx.apps.googleusercontent.com"></div>
-      <div class="fg"><label>API Key</label><input type="text" id="cfg-api-key" placeholder="AIzaSy..."></div>
-      <div class="fg"><label>Spreadsheet ID</label><input type="text" id="cfg-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"></div>
-      <button class="btn primary" style="width:100%;justify-content:center;padding:10px" onclick="initApp()">Conectar y continuar</button>
-      <hr>
-      <button class="btn" style="width:100%;justify-content:center;font-size:12px;color:var(--text2)" onclick="useLocalOnly()">Usar sin Google Sheets (solo local)</button>
+      <div class="auth-title">Iniciar sesión</div>
+
+      <div class="fg">
+        <input id="email" placeholder="Email">
+      </div>
+
+      <div class="fg">
+        <input id="password" type="password" placeholder="Password">
+      </div>
+
+      <button onclick="handleLogin()">Login</button>
+      <button onclick="handleSignup()">Registrarse</button>
     </div>
   </div>
 </div>
@@ -508,9 +508,10 @@ hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>if(window.pdfjsLib){window.pdfjsLib.GlobalWorkerOptions.workerSrc='';}</script>
-<script src="https://apis.google.com/js/api.js"></script>
-<script src="https://accounts.google.com/gsi/client"></script>
-<script src="sheets.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+  
 <script src="app.js"></script>
 <script>
   loadCfg();
