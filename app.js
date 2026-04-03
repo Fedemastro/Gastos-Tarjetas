@@ -1694,7 +1694,63 @@ function clearAll() {
   saveAndSync(); renderDashboard();
 }
 
-// --- Boot ---
+// --- Boot & Auth ---
+
+async function initAuth() {
+  setSyncStatus('syncing', 'conectando...');
+  const session = await restoreSession();
+  if (session) {
+    await launchApp();
+  } else {
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    setSyncStatus('ok', '');
+  }
+}
+
+async function doLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  var pass  = document.getElementById('login-pass').value;
+  var errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Completá email y contraseña'; errEl.style.display = 'block'; return; }
+  try {
+    await signIn(email, pass);
+    await launchApp();
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  }
+}
+
+async function doSignup() {
+  var email = document.getElementById('signup-email').value.trim();
+  var pass  = document.getElementById('signup-pass').value;
+  var errEl = document.getElementById('signup-error');
+  var okEl  = document.getElementById('signup-ok');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Completá todos los campos'; errEl.style.display = 'block'; return; }
+  try {
+    await signUp(email, pass);
+    okEl.style.display = 'block';
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  }
+}
+
+async function doLogout() {
+  await signOut();
+  db = initDB();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function authTab(tab) {
+  document.getElementById('auth-login').style.display  = tab === 'login'  ? 'block' : 'none';
+  document.getElementById('auth-signup').style.display = tab === 'signup' ? 'block' : 'none';
+  document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   initAuth();
 });
