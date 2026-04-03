@@ -1087,10 +1087,39 @@ async function confirmExtraction() {
     summaryObj.id = newId;
     db.summaries.push(summaryObj);
     saveLocal();
-    document.getElementById('ai-output').textContent = 'Guardado correctamente.';
+    document.getElementById('ai-output').textContent = 'Guardado. Subiendo archivo...';
     resetDropZone();
     renderDashboard();
     populateHistoricoFilters();
+
+    // Upload to Supabase Storage in background
+    if (uploadedFileData) {
+      var card2 = db.cards.find(function(c){ return c.id === summaryObj.cardId; });
+      var cardNameSafe = (card2 ? card2.name : 'tarjeta').replace(/[^a-zA-Z0-9]/g, '_');
+      var ext = (uploadedFileType === 'application/pdf') ? 'pdf' : 'jpg';
+      var fileName = cardNameSafe + '_' + month + '.' + ext;
+      uploadToStorage(fileName, uploadedFileData, uploadedFileType || 'application/pdf', month)
+        .then(function(result) {
+          if (result && result.signedUrl) {
+            summaryObj.driveFileId = result.path;
+            summaryObj.driveLink   = result.signedUrl;
+            var idx = db.summaries.findIndex(function(s){ return s.id === summaryObj.id; });
+            if (idx !== -1) db.summaries[idx] = summaryObj;
+            saveLocal();
+            updateSummaryDrive(summaryObj.id, result.path, result.signedUrl)
+              .catch(function(e){ console.warn('Storage link save error:', e); });
+            document.getElementById('ai-output').textContent = 'Guardado y subido correctamente.';
+          } else {
+            document.getElementById('ai-output').textContent = 'Guardado. No se pudo subir el archivo.';
+          }
+        }).catch(function(e) {
+          console.warn('Storage upload error:', e);
+          document.getElementById('ai-output').textContent = 'Guardado. Error al subir: ' + e.message;
+        });
+    } else {
+      document.getElementById('ai-output').textContent = 'Guardado correctamente.';
+    }
+
   } catch(e) {
     document.getElementById('ai-output').textContent = 'Error al guardar: ' + e.message;
     document.getElementById('confirm-btn').style.display = 'inline-flex';
@@ -1407,9 +1436,15 @@ function saveSummaryEdit(id) {
 
 async function delSummary(id) {
   if (!confirm('Eliminar este resumen?')) return;
+  var summary = db.summaries.find(function(s){ return s.id === id; });
   db.summaries = db.summaries.filter(function(s){ return s.id !== id; });
   saveLocal(); renderHistorico(); renderDashboard();
-  try { await deleteSummaryDB(id); } catch(e) { console.warn('Error deleting summary:', e); }
+  try {
+    await deleteSummaryDB(id);
+    if (summary && summary.driveFileId) {
+      await deleteFromStorage(summary.driveFileId);
+    }
+  } catch(e) { console.warn('Error deleting summary:', e); }
 }
 
 
