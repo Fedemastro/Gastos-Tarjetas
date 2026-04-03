@@ -8,7 +8,7 @@ let db = {
   cards: [], extHolders: [], summaries: [],
   gastos: [], gastosTerceros: [],
   categories: ['Supermercado','Restaurantes / Comida','Nafta / Transporte','Servicios','Salud','Ropa / Indumentaria','Entretenimiento','Viajes','Otros'],
-  fxRate: 1200,
+  fx: 1200,
   payments: {}
 };
 
@@ -74,10 +74,31 @@ async function manualSync() {
 
 // --- Auth / init ---
 
-function launchApp() {
-  loadLocal();
+async function launchApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  setSyncStatus('syncing', 'cargando...');
+  try {
+    const remote = await loadAllData();
+    if (remote) {
+      db.cards          = remote.cards;
+      db.summaries      = remote.summaries;
+      db.payments       = remote.payments;
+      db.categories     = remote.categories;
+      db.extHolders     = remote.extHolders;
+      db.gastos         = remote.gastos;
+      db.gastosTerceros = remote.gastosTerceros;
+      db.fx             = remote.fx;
+      saveLocal();
+    }
+  } catch(e) {
+    console.warn('Error loading from Supabase:', e);
+  }
+  // Show account email
+  var emailEl = document.getElementById('account-email');
+  if (emailEl && typeof _supaUser !== 'undefined' && _supaUser && _supaUser.user) {
+    emailEl.textContent = _supaUser.user.email || '';
+  }
 
 
 
@@ -100,7 +121,7 @@ function initDefaults() {
     if (el && el.type === 'month' && !el.value) el.value = ym;
   });
   ['ge-date','gt-date'].forEach(id => { const el = document.getElementById(id); if (el && !el.value) el.value = today; });
-  document.getElementById('fx-rate').value = db.fxRate || 1200;
+  document.getElementById('fx-rate').value = db.fx || 1200;
 }
 
 
@@ -1664,7 +1685,7 @@ function updateConfigFields() {
 
 function saveConfig() {}
 
-function saveFX() { db.fxRate = Number(document.getElementById('fx-rate').value) || 1200; saveAndSync(); }
+function saveFX() { db.fx = Number(document.getElementById('fx-rate').value) || 1200; saveAndSync(); }
 
 function exportToJSON() {
   const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
@@ -1738,10 +1759,22 @@ async function doSignup() {
 }
 
 async function doLogout() {
-  await signOut();
-  db = initDB();
+  try { await signOut(); } catch(e) { console.warn('signOut error:', e); }
+  // Reset db to empty state
+  db = {
+    cards: [], extHolders: [], summaries: [],
+    gastos: [], gastosTerceros: [],
+    categories: ['Supermercado','Restaurantes / Comida','Nafta / Transporte','Servicios','Salud','Indumentaria','Entretenimiento','Viajes','Educación','Otros'],
+    fx: 1200, payments: {}
+  };
+  localStorage.removeItem('tarjetas_db');
   document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
+  // Reset login form
+  var loginEmail = document.getElementById('login-email');
+  var loginPass = document.getElementById('login-pass');
+  if (loginEmail) loginEmail.value = '';
+  if (loginPass) loginPass.value = '';
 }
 
 function authTab(tab) {
