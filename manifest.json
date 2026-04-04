@@ -1,0 +1,25 @@
+{
+  "name": "Controlate",
+  "short_name": "Controlate",
+  "description": "Control inteligente de tus tarjetas y gastos",
+  "start_url": "/Gastos-Tarjetas/",
+  "scope": "/Gastos-Tarjetas/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8f7fa",
+  "theme_color": "#7367f0",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
