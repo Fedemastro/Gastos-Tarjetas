@@ -587,6 +587,58 @@ function toggleFullPayment(summaryId, totalARS, totalUSD) {
 }
 
 
+
+// --- Quick Card from selector ---
+
+function handleCardSelectChange(sel) {
+  if (sel.value === '__new__') {
+    sel.value = ''; // reset select
+    openQuickCard(sel.id);
+  }
+}
+
+function openQuickCard(returnSelectId) {
+  document.getElementById('qc-name').value = '';
+  document.getElementById('qc-bank').value = '';
+  document.getElementById('qc-type').value = 'VISA';
+  document.getElementById('qc-auto').value = 'no';
+  document.getElementById('qc-error').style.display = 'none';
+  var modal = document.getElementById('quick-card-modal');
+  modal.style.display = 'flex';
+  modal.dataset.returnSelect = returnSelectId || '';
+  document.getElementById('qc-name').focus();
+}
+
+function closeQuickCard() {
+  document.getElementById('quick-card-modal').style.display = 'none';
+}
+
+async function saveQuickCard() {
+  var name = document.getElementById('qc-name').value.trim();
+  var bank = document.getElementById('qc-bank').value.trim();
+  var type = document.getElementById('qc-type').value;
+  var auto = document.getElementById('qc-auto').value;
+  var errEl = document.getElementById('qc-error');
+  if (!name) { errEl.textContent = 'Ingresá el nombre de la tarjeta'; errEl.style.display = 'block'; return; }
+  try {
+    var res = await supaPost('cards', { user_id: currentUserId(), name, bank, type, auto_debit: auto === 'yes' });
+    var newId = res[0].id;
+    db.cards.push({ id: newId, name, bank, type, autoDebit: auto });
+    saveLocal();
+    populateCardSelects();
+    renderCards();
+    // Select the new card in the originating select
+    var returnId = document.getElementById('quick-card-modal').dataset.returnSelect;
+    if (returnId) {
+      var sel = document.getElementById(returnId);
+      if (sel) sel.value = newId;
+    }
+    closeQuickCard();
+  } catch(e) {
+    errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block';
+  }
+}
+
 // --- Cards ---
 
 async function saveCard() {
@@ -674,7 +726,7 @@ async function delCard(id) {
 
 function populateCardSelects() {
   const sorted = [...db.cards].sort((a, b) => ((a.bank||'')+'|'+(a.name||'')).localeCompare((b.bank||'')+'|'+(b.name||''), 'es'));
-  const opts = '<option value="">Seleccionar...</option>' + sorted.map(c => '<option value="' + c.id + '">' + (c.bank ? c.bank + ' - ' : '') + c.name + '</option>').join('');
+  const opts = '<option value="">Seleccionar...</option>' + sorted.map(c => '<option value="' + c.id + '">' + (c.bank ? c.bank + ' - ' : '') + c.name + '</option>').join('') + '<option value="__new__" style="color:var(--purple);font-weight:500">+ Nueva tarjeta</option>';
   ['upload-card','m-card','gt-card'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = opts; });
 }
 
