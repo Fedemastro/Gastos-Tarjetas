@@ -1,9 +1,9 @@
 const CACHE = 'controlate-v1';
 const ASSETS = [
-  '/Gastos-Tarjetas/',
-  '/Gastos-Tarjetas/index.html',
-  '/Gastos-Tarjetas/app.js',
-  '/Gastos-Tarjetas/supabase.js',
+  '/Controlate/',
+  '/Controlate/index.html',
+  '/Controlate/app.js',
+  '/Controlate/supabase.js',
   'https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
@@ -49,7 +49,7 @@ self.addEventListener('fetch', function(e) {
       if (cached) return cached;
       return fetch(e.request).then(function(response) {
         // Cachear respuestas exitosas de assets propios
-        if (response.ok && (url.includes('/Gastos-Tarjetas/') || url.includes('googleapis') || url.includes('cdnjs'))) {
+        if (response.ok && (url.includes('/Controlate/') || url.includes('googleapis') || url.includes('cdnjs'))) {
           var clone = response.clone();
           caches.open(CACHE).then(function(cache) { cache.put(e.request, clone); });
         }
@@ -57,7 +57,7 @@ self.addEventListener('fetch', function(e) {
       }).catch(function() {
         // Offline fallback: devolver index.html para navegación
         if (e.request.mode === 'navigate') {
-          return caches.match('/Gastos-Tarjetas/index.html');
+          return caches.match('/Controlate/index.html');
         }
       });
     })
