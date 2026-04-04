@@ -1,4 +1,4 @@
-const CACHE = 'controlate-v1';
+const CACHE = 'controlate-v1775318884';
 const ASSETS = [
   '/Controlate/',
   '/Controlate/index.html',
