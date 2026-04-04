@@ -1798,6 +1798,31 @@ function updateConfigFields() {
 
 function saveConfig() {}
 
+
+async function fetchDolarRate() {
+  var btn = document.getElementById('fx-update-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Actualizando...'; }
+  try {
+    var resp = await fetch(PROXY_URL + '/dolar', {
+      method: 'GET',
+      headers: { 'X-Auth-Token': AUTH_TOKEN }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    if (data.venta) {
+      db.fx = Number(data.venta);
+      saveLocal();
+      saveFXDB(db.fx).catch(function(e){ console.warn('FX save error:', e); });
+      var el = document.getElementById('fx-rate');
+      if (el) el.value = db.fx;
+      if (btn) { btn.textContent = 'Actualizado ✓'; setTimeout(function(){ btn.textContent = '↻ Actualizar'; btn.disabled = false; }, 2000); }
+    }
+  } catch(e) {
+    console.warn('fetchDolarRate error:', e);
+    if (btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false; }
+  }
+}
+
 function saveFX() { db.fx = Number(document.getElementById('fx-rate').value) || 1200; saveAndSync(); }
 
 function exportToJSON() {
