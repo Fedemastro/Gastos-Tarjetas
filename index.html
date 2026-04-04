@@ -176,6 +176,26 @@ hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
   </div>
 </div>
 
+
+<!-- MODAL NUEVA TARJETA -->
+<div id="quick-card-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.5rem;width:100%;max-width:440px;margin:1rem">
+    <div style="font-size:15px;font-weight:600;margin-bottom:1rem">Nueva tarjeta</div>
+    <div class="form-row">
+      <div class="form-col"><label>Nombre</label><input id="qc-name" placeholder="VISA Galicia"></div>
+      <div class="form-col"><label>Banco</label><input id="qc-bank" placeholder="Galicia"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-col"><label>Tipo</label><select id="qc-type"><option value="VISA">VISA</option><option value="Mastercard">Mastercard</option><option value="American Express">American Express</option><option value="Naranja">Naranja</option><option value="Otro">Otro</option></select></div>
+      <div class="form-col"><label>Débito automático</label><select id="qc-auto"><option value="no">No</option><option value="yes">Sí</option></select></div>
+    </div>
+    <div id="qc-error" style="color:var(--red);font-size:12px;margin-bottom:10px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeQuickCard()">Cancelar</button>
+      <button class="btn primary" onclick="saveQuickCard()">Guardar tarjeta</button>
+    </div>
+  </div>
+</div>
 <!-- APP -->
 <div id="app">
   <header class="topbar">
@@ -254,7 +274,7 @@ hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
         </div>
         <input type="file" id="file-inp" accept="image/*,application/pdf" style="display:none" onchange="handleFile(this)">
         <div class="form-row">
-          <div class="form-col"><label>Tarjeta</label><select id="upload-card"></select></div>
+          <div class="form-col"><label>Tarjeta</label><select id="upload-card" onchange="handleCardSelectChange(this)"></select></div>
           <div class="form-col"><label>Mes / Año</label><input type="month" id="upload-month"></div>
         </div>
         <button class="btn primary" onclick="extractWithAI()" id="extract-btn">Extraer datos con IA</button>
@@ -267,7 +287,7 @@ hr{border:none;border-top:1px solid var(--border);margin:1rem 0}
       <div class="vc">
         <div class="vct">Cargar manualmente</div>
         <div class="form-row">
-          <div class="form-col"><label>Tarjeta</label><select id="m-card"></select></div>
+          <div class="form-col"><label>Tarjeta</label><select id="m-card" onchange="handleCardSelectChange(this)"></select></div>
           <div class="form-col"><label>Mes / Año</label><input type="month" id="m-month"></div>
         </div>
         <div class="form-row">
