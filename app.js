@@ -2,7 +2,7 @@
 
 const PROXY_URL = 'https://claudeworker.fedemusic2008.workers.dev';
 // Token secreto — tiene que coincidir con AUTH_TOKEN en Cloudflare
-const AUTH_TOKEN = 'REEMPLAZA_CON_TU_TOKEN_SECRETO';
+const AUTH_TOKEN = '14ea4686-d4be-4ad9-ac29-c9baf28a6cb1';
 
 let db = {
   cards: [], extHolders: [], summaries: [],
