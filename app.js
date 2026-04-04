@@ -103,6 +103,8 @@ async function launchApp() {
 
 
   initDefaults();
+  // Auto-fetch dolar rate on load
+  fetchDolarRate().catch(function(){});
   populateCardSelects();
   populateGastoCats();
   populateGastoTerceroSelects();
